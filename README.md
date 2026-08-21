@@ -2,10 +2,9 @@
 
 ## Thông tin bài nộp
 
-- Họ và tên:  **Chu Thị Yến Khanh**
-- Mã học viên:  **2A202601739**
+- Họ và tên:  **Trần Tuấn Trung** — 2A202601769
 - Thành viên nhóm:
-  - **Trần Tuấn Trung** — 2A202601769
+  - **Chu Thị Yến Khanh** - 2A202601739
   - **Nguyễn Trọng Đức** — 2A202601673
 - Đóng góp của tôi: hoàn thiện rubric/routing, code checks, chấm human baseline,
   calibrate judge hai vòng, tổng hợp scorecard/evidence và report cuối.
