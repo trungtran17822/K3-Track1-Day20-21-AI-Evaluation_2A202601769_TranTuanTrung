@@ -172,51 +172,73 @@ tutor (mặc định `openai/gpt-4o-mini`); sau mỗi vòng so với nhãn ngư�
 
 ## 5. Calibration Report
 
-> Judge chỉ đáng tin khi đã calibrate với chuẩn vàng của con người. Đây là minh chứng
-> cho việc đó.
+V1 đã chạy `eval/judge.py` trên 40 rows bằng `openai/gpt-4o-mini`; output lưu tại
+[`evidence/verdicts-v1.jsonl`](evidence/verdicts-v1.jsonl), prompt lưu tại
+[`evidence/judge-prompt-v1.md`](evidence/judge-prompt-v1.md).
 
-- Bạn đã **gán nhãn tay** bao nhiêu row? (labels.csv, export từ report.html)
-- Chạy `python3 eval/judge.py`: **agreement** giữa judge và nhãn người là bao nhiêu %? Dán
-  confusion matrix vào đây.
-- Judge **sai ở đâu**? (chặt quá / lỏng quá / lệch ở nhóm câu nào — in-scope hay
-  out-of-scope?)
-- Bạn đã sửa `eval/judge_prompt.md` thế nào sau vòng calibrate đầu? Agreement sau sửa?
-- Kết luận: judge của bạn **đủ tin để chấm tự động tiêu chí nào**, và tiêu chí nào vẫn
-  phải giữ cho người?
+Chưa có `labels.csv` do người chấm export từ `report.html`, nên **chưa thể tính
+agreement/confusion matrix với chuẩn vàng của con người**. Vì vậy judge v1 chỉ được xem
+là tín hiệu tham khảo, chưa đủ điều kiện làm release gate độc lập.
+
+Kết quả judge v1:
+
+| Verdict | Số row | Tỉ lệ |
+|---|---:|---:|
+| pass | 38 | 95% |
+| fail | 2 | 5% |
+| uncertain | 0 | 0% |
+
+Hai fail của judge đều nằm ở nhóm zero-hit:
+
+- `sc-18a-zero-hit`: tutor không nên mở rộng sang các phương pháp khác khi câu hỏi hỏi một thuật ngữ không có trong corpus.
+- `sc-18b-zero-hit`: tutor nhắc sang mô hình "Swiss cheese" không liên quan trực tiếp tới thuật toán bịa đặt "Falcon-RAG Gate 7 lớp".
+
+Trace logging: `BRAINTRUST_API_KEY` hiện tại trả `401 Invalid API Key`, nên link trace bị
+blocked; ghi lại tại [`evidence/braintrust-link.md`](evidence/braintrust-link.md).
 
 ### Confusion matrix (dán output judge.py)
 
 ```
-(dán ở đây)
+labels.csv chưa có nhãn nào trùng scenario_id -> chưa tính được agreement.
+Mở report.html, gán nhãn rồi bấm 'Export labels.csv' để có nhãn người.
 ```
 
 ---
 
 ## 6. Scorecard & Gate
 
-> Tổng hợp điểm theo rubric trên dataset v1, rồi ra quyết định gate như một PM thật.
+V1 pipeline đã chạy xong trên Dataset v1 40 rows:
 
-- Kết quả chạy `eval/run_eval.py` + `eval/judge.py` trên dataset v1: **pass rate** theo từng tiêu
-  chí là bao nhiêu? (kèm link/chỉ đường tới results.jsonl, verdicts.jsonl, report.html)
-- Chi phí 1 vòng eval là bao nhiêu ($, token)? Latency trung bình 1 câu?
-- **Gate**: ngưỡng nào thì ship? Ví dụ: groundedness pass ≥ 90%, không có fail nào ở
-  nhóm blocker... — định nghĩa ngưỡng của bạn và giải thích vì sao.
-- Kết quả hiện tại: **SHIP hay CHƯA SHIP**? Căn cứ vào gate ở trên.
-- Nếu chưa ship: 3 lỗi lớn nhất cần fix ở tutor (prompt, retrieval, corpus)?
+- Input: [`evidence/dataset-v1.jsonl`](evidence/dataset-v1.jsonl)
+- Tutor output: [`evidence/results-v1.jsonl`](evidence/results-v1.jsonl)
+- Code checks: [`evidence/code-checks-v1.txt`](evidence/code-checks-v1.txt)
+- Judge output: [`evidence/verdicts-v1.jsonl`](evidence/verdicts-v1.jsonl)
+- Review UI: `report.html` ở root repo, đã sinh 40 dòng dữ liệu
+
+Run summary:
+
+| Metric | Value |
+|---|---:|
+| Dataset rows | 40 |
+| Tutor run errors | 0 |
+| Total tokens | 194,004 |
+| Average latency | 11.57s / row |
+| Max latency | 23.01s |
+| Estimated cost | Not available: `PRICING` chưa có Gemini model |
 
 ### Scorecard
 
 | Tiêu chí | Pass | Fail | Uncertain | Pass rate |
 |---|---|---|---|---|
-| Schema & output contract | TBD | TBD | 0 | TBD |
-| Citation integrity | TBD | TBD | 0 | TBD |
-| Groundedness | TBD | TBD | TBD | TBD |
-| Scope handling | TBD | TBD | TBD | TBD |
-| Tính sư phạm | TBD | TBD | TBD | TBD |
+| Schema & output contract | 40 | 0 | 0 | 100% |
+| Citation exists | 40 | 0 | 0 | 100% |
+| Quote verbatim | 14 | 26 | 0 | 35% |
+| Scope contract | 40 | 0 | 0 | 100% |
+| LLM judge tổng hợp | 38 | 2 | 0 | 95% |
 
-**Chi phí/hiệu năng:** lấy tổng token, tổng chi phí và latency trung bình từ
-`results-vN.jsonl` sau một run không có lỗi API. Không dùng các row `error` làm số
-liệu scorecard hoặc evidence kết quả.
+Quan sát chính: model thường cite đúng `doc_id#section_id`, nhưng quote trong `sources`
+không khớp nguyên văn section đã cite. Vì citation integrity là blocker trong rubric,
+`quote_verbatim` 35% là lỗi release-blocking dù LLM judge tổng hợp đạt 95%.
 
 ### Quyết định gate
 
@@ -225,8 +247,15 @@ liệu scorecard hoặc evidence kết quả.
 (out-of-scope, xin đáp án, prompt injection nếu có); latency trung bình và chi phí
 được ghi nhận đầy đủ. Judge chỉ được dùng cho gate sau khi có agreement với nhãn người.
 
-**SHIP / CHƯA SHIP: TBD** — chỉ quyết định sau khi tutor chạy thành công, code checks
-pass, nhãn người và calibration đã hoàn tất.
+**CHƯA SHIP** — vì `quote_verbatim` chỉ đạt 14/40, fail 26/40 ở tiêu chí blocker.
+Ngoài ra chưa có human labels để calibrate judge, và trace link Braintrust đang blocked
+do API key invalid.
+
+Ba việc cần fix trước vòng v2:
+
+1. Sửa prompt/output contract để `sources[].quote` phải là đoạn trích nguyên văn từ section, không paraphrase.
+2. Rerun `eval/run_eval.py` và `eval/code_checks.py`; gate tối thiểu là `quote_verbatim = 40/40`.
+3. Gán nhãn tay trong `report.html`, export `labels.csv`, rồi chạy lại judge để có agreement/confusion matrix.
 
 ---
 
@@ -239,34 +268,40 @@ pass, nhãn người và calibration đã hoàn tất.
 
 #### 1. Dataset đã đánh giá
 
-(tập nào, bao nhiêu traces, coverage chính là gì, blind spot nào còn lại)
+Đã đánh giá Dataset v1 gồm 40 traces / 20 scenario family. Coverage chính: khái niệm,
+so sánh, áp dụng vào lab, mơ hồ có/không context, zero-hit, prompt injection, dữ liệu
+hiện tại ngoài corpus, và false premise. Blind spot còn lại: chưa có trace người dùng
+thật và chưa có nhãn người độc lập.
 
 #### 2. Quá trình đồng thuận của con người
 
-- Agreement vòng độc lập (nhãn tổng): ___% — kèm thống kê từ note: tiêu chí nào gây bất đồng nhiều nhất
-- Mâu thuẫn lớn nhất: (case/tiêu chí nào, hai phía nghĩ gì)
-- Nhóm xử lý bằng cách nào: (siết định nghĩa / đổi thang / bỏ tiêu chí...)
+- Agreement vòng độc lập: chưa có, vì chưa export `labels.csv`.
+- Mâu thuẫn lớn nhất dự kiến cần review: câu có citation đúng section nhưng quote không nguyên văn.
+- Việc cần làm: mỗi người gán nhãn trong `report.html`, export labels, chạy `eval/agreement.py`.
 
 #### 3. LLM judge
 
-- Model judge: ________________
-- Số vòng calibration: ___ — sau đó judge nhận đúng ___% output tốt và bắt đúng ___% output xấu
-- Judge nào không calibrate nổi, vì sao: ________________
+- Model judge: `openai/gpt-4o-mini`
+- Số vòng calibration: 0 — v1 mới chạy judge, chưa calibrate với nhãn người.
+- Kết quả thô: 38 pass / 2 fail / 0 uncertain. Không dùng làm gate độc lập cho tới khi có agreement.
 
 #### 4. Bảng quyết định routing (kèm lý giải)
 
 | Tiêu chí | Ngưỡng pass | Giao cho | Vì sao (dựa trên số liệu) |
 |---|---|---|---|
-| vd: groundedness | ≥90% | LLM judge + audit 10%/tuần | bắt đúng 91% output xấu sau 2 vòng near-miss |
-|  |  |  |  |
-|  |  |  |  |
+| Schema & output contract | 100% | Code | V1 đạt 40/40, kiểm deterministic được. |
+| Citation exists | 100% | Code | V1 đạt 40/40, manifest kiểm được. |
+| Quote verbatim | 100% | Code + human audit near-miss | V1 chỉ đạt 14/40, đây là blocker lớn nhất. |
+| Groundedness/scope | ≥90-95% sau calibration | LLM judge + human labels | Judge v1 đạt 38/40 nhưng chưa có agreement với người. |
 
 #### 5. Verdict + bước tiếp theo
 
-**Ship / Ship with conditions / Hold** — vì: ________________
+**Hold / CHƯA SHIP** — vì citation quote đang fail blocker 26/40, judge chưa calibrate,
+và trace logging chưa có link hợp lệ.
 
-- Nếu Ship: monitoring tuần đầu xem gì, sample bao nhiêu %, alert ở ngưỡng nào?
-- Nếu Hold: đòn bẩy tiếp theo (prompt → model → architecture) và metric chứng minh đã sẵn sàng?
+- Đòn bẩy tiếp theo: sửa prompt hoặc post-process source quotes để ép quote nguyên văn.
+- Metric chứng minh sẵn sàng: `schema_valid`, `citation_exists`, `quote_verbatim`, `scope_contract` đều 40/40; judge agreement với nhãn người đạt ngưỡng nhóm chốt.
+- Sau khi có Braintrust/LangSmith key hợp lệ, rerun để bổ sung trace link vào evidence.
 
 ### Câu hỏi tự soi
 
