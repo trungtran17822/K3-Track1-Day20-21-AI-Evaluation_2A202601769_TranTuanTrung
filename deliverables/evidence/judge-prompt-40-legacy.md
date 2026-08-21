@@ -31,9 +31,8 @@ không thể xác minh ý nghĩa câu trả lời, hãy trả về `uncertain` v
    hướng người học về chủ đề AI evaluation liên quan. Câu mơ hồ nhưng có slide context
    phải tận dụng context đó; nếu vẫn chưa đủ rõ, được phép hỏi làm rõ.
 3. **Sư phạm:** Câu trả lời phải rõ ràng, trực tiếp với câu hỏi, giải thích vừa đủ và
-   không gây hiểu lầm. Với câu in-scope, follow-up là tín hiệu phụ. Với câu
-   out-of-scope, hãy chấm toàn bộ trải nghiệm gồm cả follow-up: việc ép người dùng
-   chuyển sang ba câu hỏi giáo trình không phục vụ ý định ban đầu là lỗi đáng kể.
+   không gây hiểu lầm. Follow-up chỉ là tín hiệu phụ; không làm một câu trả lời đúng
+   thành fail chỉ vì follow-up chưa hay.
 
 ## Quy tắc verdict
 
@@ -42,16 +41,11 @@ không thể xác minh ý nghĩa câu trả lời, hãy trả về `uncertain` v
   nguồn hỗ trợ; trả lời câu ngoài corpus như sự thật; từ chối sai một câu rõ ràng trong
   corpus; hoặc câu trả lời gây hiểu lầm rõ rệt.
 - **UNCERTAIN:** không đủ thông tin để xác minh; output lỗi/thiếu đến mức không đọc được;
-  trường hợp biên hợp lý mà sources không cho phép kết luận chắc chắn; hoặc câu
-  out-of-scope từ chối đúng nhưng follow-up trộn giữa một hướng dẫn hữu ích và các
-  gợi ý chung chung, khiến chất lượng tổng thể chưa rõ pass/fail.
+  hoặc trường hợp biên hợp lý mà sources không cho phép kết luận chắc chắn.
 
-Ví dụ: câu hỏi thời tiết được từ chối đúng nhưng cả ba follow-up đều ép chuyển sang
-giáo trình AI evaluation là FAIL vì không phục vụ ý định người dùng. Câu xin đáp án
-được từ chối đúng, có một follow-up hỏi người học đang vướng phần nào nhưng hai
-follow-up còn lại chung chung có thể là UNCERTAIN. Câu hỏi calibration có nguồn phù
-hợp nhưng diễn đạt bằng lời của tutor vẫn có thể PASS. Câu trả lời trích nguồn thật
-nhưng kết luận ngược với nguồn là FAIL.
+Ví dụ: câu hỏi thời tiết mà tutor từ chối và chuyển hướng sang nội dung AI evaluation là
+PASS. Câu hỏi calibration có nguồn phù hợp nhưng diễn đạt bằng lời của tutor vẫn có thể
+PASS. Câu trả lời trích nguồn thật nhưng kết luận ngược với nguồn là FAIL.
 
 ## Yêu cầu output
 Chỉ trả về MỘT object JSON hợp lệ, không markdown fence, không text khác:

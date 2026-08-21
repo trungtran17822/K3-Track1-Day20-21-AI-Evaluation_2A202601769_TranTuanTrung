@@ -1,23 +1,26 @@
 # AI Support Log
 
-> Ghi lại bạn đã dùng AI (ChatGPT/Claude/Kimi...) ở những bước nào khi làm deliverables.
-> Trung thực là một phần của bài nộp — không ai làm một mình, quan trọng là bạn giữ
-> quyền kiểm soát chất lượng.
+| # | Bước | AI hỗ trợ | Tôi/nhóm kiểm chứng và quyết định |
+|---|---|---|---|
+| 1 | Input Grid và Dataset v1 | Gợi ý nhóm intent và câu challenge | Nhóm chốt 5 scenario, kiểm ID/slide context và chạy 44 test offline |
+| 2 | Rubric và Routing Map | Gợi ý tách code check, LLM judge và human review | Đối chiếu output contract/corpus; giữ citation, groundedness và scope là blocker |
+| 3 | Code checks | Đề xuất `scope_contract` và xử lý skip khi output lỗi | Chạy trên 5 output; xác nhận schema/citation/scope 100%, quote 60% |
+| 4 | Human baseline | Hỗ trợ chạy script agreement | Ba thành viên tự chấm độc lập; AI không tạo nhãn người; nhóm chốt gold theo đa số 2/3 |
+| 5 | Judge calibration | Phân tích confusion matrix và đề xuất sửa một điểm ở prompt | Lưu prompt/verdict cả hai vòng; agreement tăng 60% → 80%, không ép thành 100% |
+| 6 | Scorecard/report | Tổng hợp token, latency, cost và evidence | Số liệu tính trực tiếp từ JSONL; verdict Hold vì quote blocker và dataset nhỏ |
+| 7 | Troubleshooting | Chẩn đoán 401/429/503, JSON truncate và Braintrust config | Kiểm bằng HTTP status, test offline và SDK project ID; không commit API key |
 
-| # | Bước | AI dùng để làm gì | Bạn kiểm chứng kết quả thế nào |
-|---|------|-------------------|-------------------------------|
-| 1 | Input Grid v1 | Đề xuất 5 dimensions, 20 scenario family và phân nhóm representative/challenge/critical cho VLearn AI Tutor | Áp dụng phép thử “đổi value thì expected behavior có đổi không”, loại giọng văn khỏi dimension; đối chiếu với slide s26–s30 và ghi rõ các ô không ưu tiên |
-| 2 | Dataset v1 | Viết 40 câu hỏi tự nhiên và metadata gồm dimension values, expected behavior, risk, set type, source type và slide context | Parse toàn bộ JSONL, kiểm tra ID duy nhất, dò near-duplicate, đối chiếu mọi slide ID/title với corpus và chạy 44 test offline |
-| 3 | Handoff/report evidence | Tổng hợp phân bố scope, set, risk, language; lập candidate scenario bank và danh sách 10 câu ưu tiên | Số liệu được tính trực tiếp từ `dataset.jsonl`; `dataset-v1.jsonl` được so byte với file làm việc trước khi bàn giao |
+## AI sai hoặc đề xuất chưa phù hợp
 
-- Phần nào AI gợi ý mà bạn **bác bỏ**? Vì sao?
-- Bác bỏ việc dùng nguyên metadata của dataset mẫu: `sc-01` gắn title calibration vào
-  `s51` và `sc-02` gắn trace codes vào `s29`, trong khi corpus cho thấy nội dung phù
-  hợp lần lượt là `s53` và `s35`.
-- Không nhận các câu AI sinh là “trace thật”; toàn bộ row v1 được ghi rõ
-  `source_type=llm_generated_from_corpus` để tránh tạo provenance giả.
+- Có lần xóa nhầm scratch `results.jsonl`; kết quả sau đó được chạy/ghép lại, xác minh
+  đủ 5 ID, 0 API error và 0 parse error. Bài học: luôn snapshot evidence trước thao tác xóa.
+- Judge v1 pass cả 5 câu và bỏ qua chất lượng follow-up out-of-scope. Nhóm không dùng
+  verdict đó làm chuẩn; prompt v2 chỉ sửa đúng failure mode đã quan sát.
+- Không coi agreement 100% trên 1 case chung là hợp lệ; chỉ báo cáo sau khi cả ba file
+  có đủ 5 nhãn.
 
-- Phần nào bạn **hoàn toàn tự làm**?
-- Chưa khai báo phần nào là hoàn toàn tự làm trong bước tạo Dataset v1. Phần review
-  chéo, quyết định chấp nhận dataset và nhãn human phải do các thành viên tự thực hiện,
-  độc lập với nhãn của AI/judge.
+## Phần con người giữ quyền quyết định
+
+- Ba thành viên tự gán nhãn, thảo luận `sc-04`/`sc-05` và chốt nhãn vàng.
+- Nhóm đặt release gate và quyết định **Hold**; AI chỉ hỗ trợ tính số liệu và kiểm tra
+  tính nhất quán giữa REPORT với evidence.

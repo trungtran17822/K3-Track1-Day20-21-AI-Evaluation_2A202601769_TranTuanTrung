@@ -16,6 +16,16 @@ Cần có đủ:
 | `verdicts-v1.jsonl` (v2...) | `verdicts.jsonl` (root) | Output judge từng vòng calibration |
 | `braintrust-link.md` | tự tạo | Link project Braintrust/LangSmith — trace mọi run |
 
+Artefact canonical của bài nộp này dùng Dataset v1 **5 scenario**:
+
+- `dataset-v1.jsonl`, `results-v1.jsonl`, `labels.csv`.
+- `labels_TranTuanTrung.csv`, `labels-NguyenTrongDuc.csv`, `labels_Khanh.csv` là ba
+  vòng chấm độc lập.
+- `agreement-v1.txt` là agreement người–người.
+- `judge-prompt-v1/v2.md`, `verdicts-v1/v2.jsonl`, `calibration-v1/v2.txt` là hai
+  vòng calibration judge.
+- Các file hậu tố `-40-legacy` chỉ giữ lịch sử, không dùng trong REPORT hiện tại.
+
 Số liệu trong mục 5 (Calibration Report) của `deliverables/REPORT.md` phải đối chiếu được với các
 file ở đây (confusion matrix, % agreement in ra từ `eval/judge.py`).
 

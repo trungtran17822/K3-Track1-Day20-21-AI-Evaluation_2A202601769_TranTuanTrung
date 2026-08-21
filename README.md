@@ -1,5 +1,18 @@
 # K3 Track 1 · Day 20–21 — AI Evaluation (eval-kit)
 
+## Thông tin bài nộp
+
+- Họ và tên: **Trần Tuấn Trung**
+- Mã học viên: **2A202601769**
+- Thành viên nhóm:
+  - **Chu Thị Yến Khanh** — 2A202601739
+  - **Nguyễn Trọng Đức** — 2A202601673
+- Đóng góp: hoàn thiện rubric/routing, code checks, chấm human baseline, calibrate
+  judge hai vòng, tổng hợp scorecard/evidence và report cuối.
+- Verdict: **Hold / Chưa ship** vì quote verbatim chỉ đạt 60%; cần sửa citation trước
+  khi mở rộng hoặc đưa tutor cho học viên thật.
+- Trace: [Braintrust project](https://www.braintrust.dev/app/ABC-T1/p/ai-evaluation/logs)
+
 Repo làm bài capstone **AI Evaluation** của case **VLearn AI Tutor** — trợ giảng trả lời
 câu hỏi học viên, chỉ dựa trên tài liệu khóa học, output là JSON
 `{scope, answer, sources, followup_questions}`.
