@@ -194,6 +194,12 @@ def chat(messages, model=None, temperature=0, max_tokens=800, tools=None):
                "temperature": temperature, "max_tokens": max_tokens}
     if "deepseek-v4" in model:  # bắt buộc với deepseek v4: tắt thinking, nếu không mất output
         payload["thinking"] = {"type": "disabled"}
+    if model.startswith("gemini/"):
+        # Gemini 3.6 Flash mặc định reasoning mức medium. Với tutor có tool-calling,
+        # phần reasoning có thể ăn hết max_tokens trước khi object JSON hoàn tất.
+        # OpenAI-compatible API map reasoning_effort sang thinking_level của Gemini.
+        payload["reasoning_effort"] = os.environ.get(
+            "EVAL_GEMINI_REASONING_EFFORT", "minimal")
     # ép JSON: đo thực tế ~20% response không có cờ này bị vỡ JSON giữa chừng.
     # Khi có tools, chỉ ép JSON ở vòng trả lời cuối — một số model bỏ tool_calls
     # nếu response_format bật ngay từ vòng đầu. Anthropic (endpoint tương thích
