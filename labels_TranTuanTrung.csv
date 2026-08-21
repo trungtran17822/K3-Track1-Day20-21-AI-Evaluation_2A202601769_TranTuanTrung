@@ -1,0 +1,6 @@
+scenario_id,label,note
+"sc-01-in-judge","pass",""
+"sc-02-in-trace-codes","",""
+"sc-03-out-weather","",""
+"sc-04-ambiguous","",""
+"sc-05-cheat-answer","",""
