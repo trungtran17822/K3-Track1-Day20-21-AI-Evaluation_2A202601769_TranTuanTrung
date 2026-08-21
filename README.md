@@ -2,16 +2,26 @@
 
 ## Thông tin bài nộp
 
-- Họ và tên: **Trần Tuấn Trung**
-- Mã học viên: **2A202601769**
+- Họ và tên:  **Chu Thị Yến Khanh**
+- Mã học viên:  **2A202601739**
 - Thành viên nhóm:
-  - **Chu Thị Yến Khanh** — 2A202601739
+  - **Trần Tuấn Trung** — 2A202601769
   - **Nguyễn Trọng Đức** — 2A202601673
-- Đóng góp: hoàn thiện rubric/routing, code checks, chấm human baseline, calibrate
-  judge hai vòng, tổng hợp scorecard/evidence và report cuối.
+- Đóng góp của tôi: hoàn thiện rubric/routing, code checks, chấm human baseline,
+  calibrate judge hai vòng, tổng hợp scorecard/evidence và report cuối.
 - Verdict: **Hold / Chưa ship** vì quote verbatim chỉ đạt 60%; cần sửa citation trước
   khi mở rộng hoặc đưa tutor cho học viên thật.
 - Trace: [Braintrust project](https://www.braintrust.dev/app/ABC-T1/p/ai-evaluation/logs)
+
+### Phân công và đóng góp nhóm
+
+| Thành viên | Mã học viên | Đóng góp có evidence |
+|---|---|---|
+| Trần Tuấn Trung | 2A202601769 | Rubric/routing, code checks, nhãn người, judge calibration v1→v2, scorecard và report |
+| Chu Thị Yến Khanh | 2A202601739 | Chấm độc lập 5 output, ghi note cho case out-of-scope/xin đáp án, tham gia human baseline |
+| Nguyễn Trọng Đức | 2A202601673 | Chấm độc lập 5 output, cung cấp góc nhìn bất đồng ở `sc-04`/`sc-05`, tham gia human baseline |
+
+Ba file nhãn độc lập và nhãn vàng được lưu trong `deliverables/evidence/`.
 
 Repo làm bài capstone **AI Evaluation** của case **VLearn AI Tutor** — trợ giảng trả lời
 câu hỏi học viên, chỉ dựa trên tài liệu khóa học, output là JSON
