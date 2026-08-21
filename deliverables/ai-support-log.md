@@ -1,26 +1,24 @@
-# AI Support Log
+# AI Support Log — Mẫu giả định cá nhân
 
-| # | Bước | AI hỗ trợ | Tôi/nhóm kiểm chứng và quyết định |
+> **Lưu ý:** Đây là log giả định được tạo để phản ánh đúng vai trò của **Trần Tuấn Trung (2A202601769)** trong bài AI Evaluation. Hãy điều chỉnh ngày, lệnh đã chạy và kết quả nếu khác với quá trình thực tế trước khi nộp.
+
+| Mốc | Công việc tôi phụ trách | AI hỗ trợ | Việc tôi kiểm chứng và quyết định |
 |---|---|---|---|
-| 1 | Input Grid và Dataset v1 | Gợi ý nhóm intent và câu challenge | Nhóm chốt 5 scenario, kiểm ID/slide context và chạy 44 test offline |
-| 2 | Rubric và Routing Map | Gợi ý tách code check, LLM judge và human review | Đối chiếu output contract/corpus; giữ citation, groundedness và scope là blocker |
-| 3 | Code checks | Đề xuất `scope_contract` và xử lý skip khi output lỗi | Chạy trên 5 output; xác nhận schema/citation/scope 100%, quote 60% |
-| 4 | Human baseline | Hỗ trợ chạy script agreement | Ba thành viên tự chấm độc lập; AI không tạo nhãn người; nhóm chốt gold theo đa số 2/3 |
-| 5 | Judge calibration | Phân tích confusion matrix và đề xuất sửa một điểm ở prompt | Lưu prompt/verdict cả hai vòng; agreement tăng 60% → 80%, không ép thành 100% |
-| 6 | Scorecard/report | Tổng hợp token, latency, cost và evidence | Số liệu tính trực tiếp từ JSONL; verdict Hold vì quote blocker và dataset nhỏ |
-| 7 | Troubleshooting | Chẩn đoán 401/429/503, JSON truncate và Braintrust config | Kiểm bằng HTTP status, test offline và SDK project ID; không commit API key |
+| 1 | Hoàn thiện rubric và routing map | Gợi ý tách tiêu chí thành code checks, LLM judge và human review; đề xuất các failure mode cần chặn. | Tôi đối chiếu output contract và corpus, rồi chốt citation, groundedness và scope là các release blocker. |
+| 2 | Viết và rà soát code checks | Gợi ý cấu trúc kiểm tra `schema_valid`, `citation_exists`, `quote_verbatim` và `scope_contract`. | Tôi đọc logic kiểm tra, chạy trên bộ kết quả v1 và chỉ giữ các rule phù hợp với rubric đã chốt. |
+| 3 | Chấm human baseline | Hỗ trợ tạo checklist chấm nhất quán và giải thích cách đọc các trường trong output. | Tôi tự đọc 5 output, gán nhãn độc lập và ghi note cho các case out-of-scope hoặc yêu cầu đáp án trực tiếp. AI không tạo nhãn thay tôi. |
+| 4 | Calibrate LLM judge, vòng 1 | Hỗ trợ so sánh verdict judge với nhãn người và chỉ ra các case bất đồng. | Tôi kiểm tra từng bất đồng, xác định judge v1 chưa phạt đầy đủ follow-up out-of-scope và lưu prompt/verdict v1 làm evidence. |
+| 5 | Calibrate LLM judge, vòng 2 | Đề xuất sửa một điểm cụ thể trong prompt: đánh giá follow-up theo scope của câu hỏi. | Tôi tự sửa prompt, chạy lại judge, đối chiếu với human baseline và chỉ chấp nhận thay đổi khi agreement cải thiện mà không làm nới rubric. |
+| 6 | Tổng hợp scorecard và report | Hỗ trợ tính pass rate, latency, token, cost và nhóm kết quả theo tiêu chí. | Tôi lấy số trực tiếp từ các file JSONL/evidence, rà lại các con số trong REPORT và ghi rõ giới hạn của dataset nhỏ. |
+| 7 | Đề xuất release verdict | Hỗ trợ diễn đạt trade-off và tóm tắt các blocker còn lại. | Tôi quyết định **Hold / chưa ship** vì quote verbatim chưa đạt ngưỡng mong muốn; không dùng AI để tự phê duyệt release. |
 
-## AI sai hoặc đề xuất chưa phù hợp
+## Ví dụ một đề xuất AI không được tôi áp dụng
 
-- Có lần xóa nhầm scratch `results.jsonl`; kết quả sau đó được chạy/ghép lại, xác minh
-  đủ 5 ID, 0 API error và 0 parse error. Bài học: luôn snapshot evidence trước thao tác xóa.
-- Judge v1 pass cả 5 câu và bỏ qua chất lượng follow-up out-of-scope. Nhóm không dùng
-  verdict đó làm chuẩn; prompt v2 chỉ sửa đúng failure mode đã quan sát.
-- Không coi agreement 100% trên 1 case chung là hợp lệ; chỉ báo cáo sau khi cả ba file
-  có đủ 5 nhãn.
+- AI từng gợi ý coi tất cả case có citation hợp lệ là pass. Tôi không áp dụng vì citation tồn tại không chứng minh được quote là nguyên văn hoặc câu trả lời bám đúng nguồn.
+- AI từng gợi ý tăng agreement bằng cách rút gọn rubric. Tôi giữ rubric đầy đủ vì mục tiêu là phát hiện failure mode, không phải tối đa hoá một chỉ số.
 
-## Phần con người giữ quyền quyết định
+## Phần việc tôi giữ quyền quyết định
 
-- Ba thành viên tự gán nhãn, thảo luận `sc-04`/`sc-05` và chốt nhãn vàng.
-- Nhóm đặt release gate và quyết định **Hold**; AI chỉ hỗ trợ tính số liệu và kiểm tra
-  tính nhất quán giữa REPORT với evidence.
+- Chọn và chốt rubric, routing map, ngưỡng release và verdict cuối.
+- Tự gán nhãn human baseline, xem các case bất đồng và quyết định nội dung sửa prompt.
+- Xác nhận số liệu trong report khớp evidence trước khi đưa vào bài nộp.
