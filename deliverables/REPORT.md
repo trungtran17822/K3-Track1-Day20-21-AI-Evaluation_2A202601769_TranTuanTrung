@@ -9,41 +9,108 @@ results-vN.jsonl, labels.csv, judge-prompt-vN.md, verdicts-vN.jsonl, braintrust-
 
 ## 1. Input Grid
 
-> Lưới input = trục "ai hỏi" × "hỏi kiểu gì". LLM giúp sinh input, con người kiểm soát
-> coverage. Trả lời các câu hỏi sau rồi vẽ lưới của bạn.
+**Quyết định coverage.** VLearn AI Tutor phục vụ bốn nhóm chính: học viên mới cần
+giải thích từ nền, học viên giữa khóa cần tra cứu/vận dụng, người ôn tập cần so sánh
+tổng hợp, và PM khác team muốn áp dụng kiến thức eval. Nhóm người ngoài khóa chỉ xuất
+hiện trong các case kiểm tra boundary và adversarial.
 
-- AI Tutor của bạn phục vụ những **nhóm người dùng** nào? (học viên mới, học viên đang
-  làm bài, học viên ôn lại, PM khác team...?)
-- Mỗi nhóm có những **ý định (intent)** hỏi nào? (hỏi khái niệm, xin ví dụ, hỏi ngoài
-  lề, xin đáp án, hỏi mơ hồ...?)
-- Ô nào trong lưới là **rủi ro cao** nhất (trả lời sai thì hại người học)? Ô nào **tần
-  suất cao** nhất?
+Grid v1 dùng năm dimension làm hành vi đúng của tutor thay đổi:
+
+| Dimension | Values đã chọn | Hành vi đúng thay đổi như thế nào |
+|---|---|---|
+| Persona | Học viên mới, giữa khóa, ôn tập, PM khác team, người ngoài khóa | Thay đổi độ sâu giải thích và giới hạn phục vụ |
+| Intent | Khái niệm/tra cứu, so sánh/tổng hợp, áp dụng/quyết định, mơ hồ, boundary/adversarial | Tutor phải đổi giữa trả lời, tổng hợp, hỏi lại và từ chối |
+| Coverage tài liệu | Direct, multi-source, unknown, out-of-corpus, zero-hit, out-of-scope | Quyết định trả lời trực tiếp, ghép nguồn, làm rõ hay không được bịa |
+| Context richness | Có/không slide, thiếu context, multi-intent, false premise, malicious | Quyết định dùng context, hỏi lại, bác tiền đề hay từ chối |
+| Ngôn ngữ | Tiếng Việt, tiếng Anh | Kiểm tra tutor giữ đúng scope khi đổi ngôn ngữ |
+
+Giọng văn lịch sự/cộc lốc không được chọn làm dimension riêng vì đổi giọng văn không
+làm expected behavior thay đổi. `set_type` cũng chỉ là nhãn quản trị tập test, không
+phải input dimension.
 
 ### Lưới của bạn
 
-| Nhóm user \ Intent | ... | ... | ... |
-|---|---|---|---|
-| ... | | | |
+| Nhóm user \ Intent | Khái niệm/tra cứu | So sánh/tổng hợp | Áp dụng/quyết định | Mơ hồ/thiếu context | Boundary/adversarial |
+|---|---|---|---|---|---|
+| Học viên mới | sc-01, 03, 05, 06 | — | sc-03 | sc-13, 14 | sc-18 |
+| Học viên giữa khóa | sc-02, 04, 06, 08, 10 | sc-15 | sc-04, 08 | sc-13 | sc-18, 20 |
+| Người ôn tập | sc-09, 11 | sc-16 | — | — | — |
+| PM khác team | sc-07, 10, 12 | sc-07, 11, 15, 16 | sc-09, 10, 11, 12 | — | sc-17, 20 |
+| Người ngoài khóa | — | — | — | — | sc-19 |
+
+Ô tần suất cao là học viên mới/giữa khóa hỏi khái niệm, tra cứu và vận dụng nên được
+phủ bởi 24 representative inputs. Ô rủi ro cao là zero-hit, prompt injection, xin đáp
+án và false premise: nếu tutor bịa hoặc chiều theo user thì làm sai kiến thức và mất
+niềm tin, nên được cố ý over-sample bằng 6 critical regression inputs.
+
+Không test toàn bộ tích Descartes. Các tổ hợp không làm tutor đổi chiến lược hoặc ít
+khả năng xảy ra được bỏ để tránh tăng số row nhưng không tăng coverage. Quyết định và
+danh sách ô đầy đủ nằm tại [`evidence/input-grid-v1.md`](evidence/input-grid-v1.md).
 
 ---
 
 ## 2. Dataset v1
 
-> Dataset là "bộ đề thi" của tutor. Nêu rõ nó phủ những ô nào trong input-grid.
+Dataset v1 có **40 inputs thuộc 20 scenario family**, mỗi family có hai cách diễn đạt.
+File đầu vào đã khóa là [`evidence/dataset-v1.jsonl`](evidence/dataset-v1.jsonl).
+Mỗi row có `dimension_values`, `expected_behavior`, `risk_if_fail`, `set_type`,
+`source_type` và slide context khi cần để có thể phân tích theo slice.
 
-- `dataset.jsonl` của bạn có **bao nhiêu câu**? Mỗi câu thuộc ô nào trong lưới input?
-- Tỉ lệ in-scope / out-of-scope / mơ hồ / adversarial (xin đáp án, prompt injection)
-  là bao nhiêu? Vì sao chọn tỉ lệ đó?
-- Câu nào bạn **lấy từ trace thật** (người dùng thật hỏi), câu nào do bạn/LLM sinh ra?
-- Ai đã **review** dataset? Phát hiện gì khi review (câu trùng ý, câu quá dễ, thiếu ô
-  rủi ro cao)?
-- Nếu chỉ được giữ 10 câu, bạn giữ 10 câu nào? Vì sao?
+### Phân bố và lý do
+
+- Scope: 30 in-scope (75%), 4 unclear (10%), 6 out-of-scope (15%).
+- Set: 24 representative (60%), 10 challenge (25%), 6 critical regression (15%).
+- Adversarial: 2 inputs (5%), đồng thời thuộc out-of-scope và critical regression.
+- Risk: 9 medium (22,5%), 27 high (67,5%), 4 critical (10%).
+- Context: 18 inputs có slide metadata; 22 inputs không phụ thuộc slide.
+- Ngôn ngữ: 38 tiếng Việt (95%), 2 tiếng Anh (5%).
+
+75% in-scope phản ánh luồng sử dụng chính. Tuy nhiên, 40% dataset được dành cho
+challenge/critical để không bị happy-path bias và đo các boundary có failure cost
+cao: ambiguity, multi-intent, dữ liệu live ngoài corpus, zero-hit, prompt injection
+và false premise.
+
+### Nguồn và review
+
+Toàn bộ 40 câu được AI phác thảo từ corpus khóa học rồi gắn
+`source_type=llm_generated_from_corpus`; không có row nào được khai báo là trace thật
+vì nhóm chưa có bằng chứng production. Cách ghi này tránh tạo provenance giả.
+
+Dataset đã qua kiểm tra kỹ thuật: 40/40 dòng parse được, ID duy nhất, không có cặp câu
+near-duplicate ở ngưỡng 0,80, mọi slide ID/title khớp corpus, 30/30 câu in-scope có
+kết quả retrieval trực tiếp và 44/44 test offline pass. Review cũng phát hiện metadata
+mẫu bị lệch (`s51`/`s29`) và đã sửa sang slide đúng (`s53`/`s35`). Human cross-review
+với Người 2/3 vẫn là gate bắt buộc trước baseline run; chưa tuyên bố hoàn tất bước này.
 
 ### Danh sách scenario (bảng tóm tắt)
 
 | scenario_id | ô trong lưới | expected | nguồn câu hỏi |
 |---|---|---|---|
-| | | | |
+| sc-01a/b | Học viên mới × khái niệm | Giải thích eval là vòng lặp | AI từ corpus |
+| sc-02a/b | Giữa khóa × so sánh | Phân biệt vibe check và offline eval | AI từ corpus |
+| sc-03a/b | Học viên × áp dụng | Nêu/vận dụng năm bước tạo UIG | AI từ corpus |
+| sc-04a/b | Giữa khóa × thiết kế | Chỉ giữ dimension làm hành vi đổi | AI từ corpus |
+| sc-05a/b | Học viên × khái niệm | Phân biệt trace và transcript | AI từ corpus |
+| sc-06a/b | Học viên × tra cứu | Chuẩn hóa note thành trace codes | AI từ corpus |
+| sc-07a/b | PM × quyết định | Route code, judge và human | AI từ corpus |
+| sc-08a/b | Giữa khóa × áp dụng | Chọn code checks deterministic | AI từ corpus |
+| sc-09a/b | PM/ôn tập × quyết định | Đọc slice và đặt gate theo rủi ro | AI từ corpus |
+| sc-10a/b | Học viên/PM × khái niệm | Calibrate judge theo nhãn expert | AI từ corpus |
+| sc-11a/b | PM/ôn tập × tổng hợp | Kết hợp code, judge và human | AI từ corpus |
+| sc-12a/b | PM × thiết kế review | Cho evidence, tránh anchoring | AI từ corpus |
+| sc-13a/b | Học viên × mơ hồ có slide | Dùng context, không đoán sai | AI từ corpus |
+| sc-14a/b | Học viên × thiếu context | Hỏi làm rõ trước khi trả lời | AI từ corpus |
+| sc-15a/b | Học viên/PM × multi-intent | Trả đủ ý và tổng hợp nhiều nguồn | AI từ corpus |
+| sc-16a/b | Ôn tập × so sánh | Nêu quan hệ xuyên module | AI từ corpus |
+| sc-17a/b | PM × dữ liệu live | Không bịa dữ liệu ngoài corpus | AI từ corpus |
+| sc-18a/b | Học viên × zero-hit | Không bịa thuật ngữ/tài liệu | AI từ corpus |
+| sc-19a/b | Người ngoài × adversarial | Chống injection và answer leakage | AI từ corpus |
+| sc-20a/b | Học viên/PM × false premise | Bác tiền đề sai bằng nguồn | AI từ corpus |
+
+Nếu chỉ giữ 10 câu, nhóm giữ `sc-01a`, `sc-03b`, `sc-05a`, `sc-07b`, `sc-10a`,
+`sc-13a`, `sc-14a`, `sc-17a`, `sc-19a` và `sc-20b`. Bộ rút gọn này vẫn phủ direct,
+multi-source, ambiguity có/không context, external boundary, adversarial và false
+premise thay vì chỉ giữ các happy path dễ đạt.
 
 ---
 
