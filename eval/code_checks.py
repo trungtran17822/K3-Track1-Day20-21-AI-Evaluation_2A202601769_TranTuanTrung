@@ -34,8 +34,8 @@ def check_schema(rec):
 def check_citation_exists(rec, valid_ids):
     """Mọi doc_id/section_id trong sources phải tồn tại thật trong corpus."""
     out = rec.get("output") or {}
-    if out.get("_parse_error"):
-        return None, "bỏ qua (JSON vỡ)"
+    if out.get("_parse_error") or not EXPECTED_FIELDS.issubset(out):
+        return None, "bỏ qua (output không hợp lệ)"
     for s in out.get("sources") or []:
         key = (s.get("doc_id"), s.get("section_id"))
         if key not in valid_ids:
@@ -55,8 +55,8 @@ def check_quote_verbatim(rec, section_tokens):
     """Quote phải nằm trong section đã cite — so theo chuỗi token (bỏ dấu, lowercase,
     bỏ mọi dấu câu/khoảng trắng) nên khác biệt gạch ngang/ngoặc kép không tính là sai."""
     out = rec.get("output") or {}
-    if out.get("_parse_error"):
-        return None, "bỏ qua (JSON vỡ)"
+    if out.get("_parse_error") or not EXPECTED_FIELDS.issubset(out):
+        return None, "bỏ qua (output không hợp lệ)"
     for s in out.get("sources") or []:
         tokens = section_tokens.get((s.get("doc_id"), s.get("section_id")), [])
         quote_tokens = tutor.tokens(s.get("quote") or "")
@@ -65,10 +65,30 @@ def check_quote_verbatim(rec, section_tokens):
     return True, None
 
 
+def check_scope_contract(rec):
+    """Kiểm các ràng buộc output theo scope mà không cần LLM."""
+    out = rec.get("output") or {}
+    if out.get("_parse_error") or not EXPECTED_FIELDS.issubset(out):
+        return None, "bỏ qua (output không hợp lệ)"
+    scope = out.get("scope")
+    sources = out.get("sources") or []
+    followups = out.get("followup_questions")
+    if scope not in {"in_scope", "out_of_scope"}:
+        return False, "scope phải là in_scope hoặc out_of_scope"
+    if scope == "in_scope" and not sources:
+        return False, "in_scope nhưng không có sources"
+    if scope == "out_of_scope" and sources:
+        return False, "out_of_scope nhưng vẫn có sources"
+    if not isinstance(followups, list) or len(followups) != 3:
+        return False, "followup_questions phải có đúng 3 câu"
+    return True, None
+
+
 CHECKS = [  # thêm check của nhóm vào đây
     ("schema_valid", check_schema),
     ("citation_exists", check_citation_exists),
     ("quote_verbatim", check_quote_verbatim),
+    ("scope_contract", check_scope_contract),
 ]
 
 
@@ -90,8 +110,10 @@ def main(path="results.jsonl"):
                 ok, reason = fn(rec)
             elif fn is check_citation_exists:
                 ok, reason = fn(rec, valid_ids)
-            else:
+            elif fn is check_quote_verbatim:
                 ok, reason = fn(rec, section_tokens)
+            else:
+                ok, reason = fn(rec)
             if ok is None:
                 line.append(f"{name}: skip")
                 continue

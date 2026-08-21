@@ -65,7 +65,11 @@ results-vN.jsonl, labels.csv, judge-prompt-vN.md, verdicts-vN.jsonl, braintrust-
 
 | Tiêu chí | Pass khi | Fail khi | Blocker? |
 |---|---|---|---|
-| | | | |
+| Schema & output contract | JSON có đủ 4 field; `scope`, sources và 3 follow-up tuân đúng contract | JSON vỡ, thiếu field, scope/sources/follow-up sai contract | Có |
+| Citation integrity | Mọi source trỏ tới `doc_id#section_id` có thật; quote là nguyên văn section đó | Bịa nguồn, source không tồn tại hoặc quote không khớp | Có |
+| Groundedness | Các khẳng định chính của câu in-scope được nguồn hỗ trợ, không suy diễn quá nguồn | Hallucination hoặc kết luận trái/không được nguồn hỗ trợ | Có |
+| Scope handling | Trả lời câu trong corpus; từ chối khéo câu ngoài corpus/xin đáp án và chuyển hướng phù hợp | Trả lời kiến thức ngoài corpus, bịa đáp án, hoặc từ chối oan câu trong corpus | Có |
+| Tính sư phạm | Trả lời rõ, trực tiếp, đủ để người học hiểu bước tiếp theo | Mơ hồ, lạc đề hoặc gây hiểu lầm đáng kể | Không |
 
 ---
 
@@ -86,7 +90,16 @@ results-vN.jsonl, labels.csv, judge-prompt-vN.md, verdicts-vN.jsonl, braintrust-
 
 | Tiêu chí | Code | LLM judge | Con người | Lý do |
 |---|---|---|---|---|
-| | | | | |
+| Schema & output contract | Có | Không | Audit khi lỗi | Quy tắc cấu trúc xác định, chạy rẻ và lặp lại được |
+| Citation integrity | Có | Không | Audit near-miss | Corpus có manifest nên kiểm được ID và quote bằng token matching |
+| Groundedness | Không | Có | Audit/calibrate | Cần hiểu ngữ nghĩa giữa answer, question và nguồn |
+| Scope handling | Một phần | Có | Audit/calibrate | Code chỉ kiểm được contract; đúng/sai theo ngữ cảnh cần suy luận |
+| Tính sư phạm | Không | Có | Có, khi bất đồng | Đây là tiêu chí chủ quan, judge phải được calibrate với nhãn người |
+
+**Thiết kế judge v1:** `eval/judge_prompt.md` chấm groundedness, scope handling và
+tính sư phạm bằng verdict tổng hợp `pass/fail/uncertain`. Model judge phải khác model
+tutor (mặc định `openai/gpt-4o-mini`); sau mỗi vòng so với nhãn người, chỉ sửa một thay
+đổi rõ ràng trong prompt và lưu prompt/verdict thành version mới trong `evidence/`.
 
 ---
 
@@ -128,11 +141,25 @@ results-vN.jsonl, labels.csv, judge-prompt-vN.md, verdicts-vN.jsonl, braintrust-
 
 | Tiêu chí | Pass | Fail | Uncertain | Pass rate |
 |---|---|---|---|---|
-| | | | | |
+| Schema & output contract | TBD | TBD | 0 | TBD |
+| Citation integrity | TBD | TBD | 0 | TBD |
+| Groundedness | TBD | TBD | TBD | TBD |
+| Scope handling | TBD | TBD | TBD | TBD |
+| Tính sư phạm | TBD | TBD | TBD | TBD |
+
+**Chi phí/hiệu năng:** lấy tổng token, tổng chi phí và latency trung bình từ
+`results-vN.jsonl` sau một run không có lỗi API. Không dùng các row `error` làm số
+liệu scorecard hoặc evidence kết quả.
 
 ### Quyết định gate
 
-**SHIP / CHƯA SHIP** — vì: ...
+**Ngưỡng đề xuất trước khi chạy:** schema & citation integrity = 100%; groundedness
+≥ 90%; scope handling ≥ 95%; không có fail blocker ở các scenario rủi ro cao
+(out-of-scope, xin đáp án, prompt injection nếu có); latency trung bình và chi phí
+được ghi nhận đầy đủ. Judge chỉ được dùng cho gate sau khi có agreement với nhãn người.
+
+**SHIP / CHƯA SHIP: TBD** — chỉ quyết định sau khi tutor chạy thành công, code checks
+pass, nhãn người và calibration đã hoàn tất.
 
 ---
 
