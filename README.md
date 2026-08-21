@@ -12,6 +12,19 @@ README này là hướng dẫn duy nhất: bước nào gõ lệnh gì, file nà
 > **File lab tổng (kim chỉ nam, có timeline + rubric chấm):** đọc kèm
 > `day21-lab-ai-evaluation-capstone.md` do lớp phát.
 
+## Đọc README này như thế nào?
+
+Nếu bạn mới mở repo lần đầu, hãy làm theo thứ tự này:
+
+1. Đọc **Cấu trúc repo** để biết file nào dùng cho việc gì.
+2. Làm **Quickstart** để kiểm tra môi trường chạy được.
+3. Làm bài theo **6 phase**. Mỗi phase đều ghi rõ cần chạy lệnh nào và sinh ra file nào.
+4. Khi chạy xong một vòng eval, copy ngay file output vào `deliverables/evidence/`.
+5. Cuối cùng đọc mục **Nộp bài thì lấy gì từ repo?** để soát checklist trước khi nộp.
+
+Tất cả lệnh bên dưới đều giả định bạn đang đứng ở thư mục root của repo này, tức thư mục
+có file `README.md`, `requirements.txt`, `tutor/`, `eval/`, `tests/`.
+
 ## Cấu trúc repo
 
 | Thư mục / file | Vai trò |
@@ -29,17 +42,122 @@ theo version (`results-v1.jsonl`, `verdicts-v2.jsonl`...), không ghi đè vòng
 
 ## Quickstart (3 phút)
 
+### 0. Đi vào đúng thư mục repo
+
 ```bash
-pip install -r requirements.txt        # 1. cài đặt (chỉ cần requests; braintrust/langsmith để tracing)
-cp .env.example .env                   # 2. điền API key của provider bạn dùng (+ BRAINTRUST_API_KEY hoặc LANGSMITH_API_KEY để log trace)
-cp data/dataset.example.jsonl dataset.jsonl
-python3 tests/test_eval_kit.py         # 3. 44 test offline phải sạch hết
-python3 eval/run_eval.py                # 4. chạy tutor trên dataset -> results.jsonl
-python3 eval/report.py && open report.html   # 5. xem kết quả, gán nhãn
+cd K3-Track1-Day20-21-AI-Evaluation_2A202601769_TranTuanTrung
 ```
 
-Gợi ý: nếu test fail ngay tầng 2 (corpus), gần như chắc chắn bạn đang chạy sai thư mục —
-`cd` vào đúng root repo rồi chạy lại.
+Kiểm tra nhanh:
+
+```bash
+ls
+```
+
+Bạn phải thấy các thư mục `tutor/`, `eval/`, `tests/`, `data/`, `deliverables/`.
+
+### 1. Tạo môi trường Python và cài thư viện
+
+Nếu dùng macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Nếu dùng Windows PowerShell:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Nếu PowerShell chặn activate script, chạy một lần:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Sau đó đóng/mở lại terminal và activate lại `.venv`.
+
+### 2. Tạo file `.env` và điền API key
+
+macOS/Linux:
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Mở `.env`, chọn provider bạn dùng rồi điền key thật. Ví dụ nếu dùng DeepSeek:
+
+```env
+DEEPSEEK_API_KEY=sk-...
+EVAL_MODEL=deepseek/deepseek-v4-flash
+```
+
+Tracing là bắt buộc khi nộp bài. Điền thêm **một trong hai**:
+
+```env
+BRAINTRUST_API_KEY=sk-...
+```
+
+hoặc:
+
+```env
+LANGSMITH_API_KEY=lsv2_pt_...
+```
+
+### 3. Tạo dataset mẫu và chạy test offline
+
+macOS/Linux:
+
+```bash
+cp data/dataset.example.jsonl dataset.jsonl
+python3 tests/test_eval_kit.py
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item data\dataset.example.jsonl dataset.jsonl
+py -3 tests\test_eval_kit.py
+```
+
+Kỳ vọng: 44 test offline pass. Các test này không tốn API vì chưa gọi model.
+
+### 4. Chạy tutor và mở report
+
+macOS/Linux:
+
+```bash
+python3 eval/run_eval.py
+python3 eval/report.py
+open report.html
+```
+
+Windows PowerShell:
+
+```powershell
+py -3 eval\run_eval.py
+py -3 eval\report.py
+Start-Process report.html
+```
+
+Sau bước này bạn sẽ có:
+
+- `results.jsonl`: output thật của tutor cho từng câu hỏi trong dataset.
+- `report.html`: giao diện đọc kết quả và gán nhãn thủ công.
+
+Gợi ý: nếu test fail ngay tầng 2 (corpus), gần như chắc chắn bạn đang chạy sai thư mục.
+Hãy `cd` vào đúng root repo rồi chạy lại.
 
 ## Làm bài theo 6 phase — bước nào chạy gì?
 
@@ -58,6 +176,30 @@ kèm vì sao**. Cấu trúc thư mục nộp và checklist: [deliverables/README
 **Tracing bắt buộc:** đặt `BRAINTRUST_API_KEY` hoặc `LANGSMITH_API_KEY` trong `.env`
 trước khi chạy — mọi run tutor/judge log thành trace, link project là một phần bài nộp.
 
+## Luồng làm việc chuẩn cho một vòng eval
+
+Một vòng eval đầy đủ nên đi theo thứ tự này:
+
+1. Chuẩn bị `dataset.jsonl`.
+2. Chạy `eval/run_eval.py` để sinh `results.jsonl`.
+3. Chạy `eval/code_checks.py` để kiểm tra rule bằng code.
+4. Chạy `eval/report.py`, mở `report.html`, đọc câu trả lời và export `labels.csv`.
+5. Chạy `eval/judge.py` để sinh `verdicts.jsonl` và so judge với nhãn người.
+6. Nếu judge chưa ổn, sửa `eval/judge_prompt.md`, chạy lại bước 5.
+7. Copy các file quan trọng vào `deliverables/evidence/` với tên version.
+
+Ví dụ sau vòng đầu tiên:
+
+```bash
+cp dataset.jsonl deliverables/evidence/dataset-v1.jsonl
+cp results.jsonl deliverables/evidence/results-v1.jsonl
+cp verdicts.jsonl deliverables/evidence/verdicts-v1.jsonl
+cp eval/judge_prompt.md deliverables/evidence/judge-prompt-v1.md
+cp labels.csv deliverables/evidence/labels.csv
+```
+
+Trên Windows PowerShell, dùng `Copy-Item` thay cho `cp`.
+
 ## Chi tiết từng lệnh
 
 ```bash
@@ -66,6 +208,16 @@ python3 eval/code_checks.py   # 2. làn code: rule thuần Python trên results 
 python3 eval/report.py        # 3. sinh report.html -> mở, gán nhãn người, Export labels.csv
 python3 eval/agreement.py labels-*.csv   # 4. đo đồng thuận giữa các thành viên
 python3 eval/judge.py         # 5. judge chấm theo judge_prompt.md -> verdicts.jsonl + confusion matrix
+```
+
+Trên Windows, nếu máy không có lệnh `python3`, dùng `py -3`:
+
+```powershell
+py -3 eval\run_eval.py
+py -3 eval\code_checks.py
+py -3 eval\report.py
+py -3 eval\agreement.py labels-*.csv
+py -3 eval\judge.py
 ```
 
 Mỗi lệnh ghi đè file output của nó — muốn giữ vòng cũ, copy file đi trước
@@ -169,12 +321,14 @@ Khi nộp: ghi link project (Braintrust hoặc LangSmith) vào `deliverables/evi
 
 ## Gỡ lỗi nhanh
 
-| Triệu chứng | Nguyên nhân thường gặp |
-|---|---|
-| `Chưa có API key...` | Thiếu `.env`, hoặc tên biến sai family (deepseek cần `DEEPSEEK_API_KEY`) |
-| Row có `_parse_error` / `_truncated` | Model trả JSON vỡ (thường do cắt output) — mở `raw_content` xem; đó là một failure mode thật, đáng ghi vào bài |
-| Judge toàn 401 | Sai key cho provider của model judge (xem bảng provider ở trên), hoặc shell đang export sẵn `OPENAI_API_KEY` khác — kiểm tra `env \| grep OPENAI` |
-| Retrieve trượt chủ đề | Câu hỏi quá ngắn/deixis — gắn `metadata.slide` với `keyword` vào row dataset |
+| Triệu chứng | Nguyên nhân thường gặp | Cách xử lý |
+|---|---|---|
+| `Chưa có API key...` | Thiếu `.env`, hoặc tên biến sai family | Kiểm tra `.env`. Nếu model là `deepseek/...` thì cần `DEEPSEEK_API_KEY`; nếu `openai/...` thì cần `OPENAI_API_KEY` |
+| `ModuleNotFoundError` | Chưa cài thư viện hoặc chưa activate `.venv` | Activate `.venv`, rồi chạy lại `pip install -r requirements.txt` |
+| Test fail ở phần corpus | Đang chạy sai thư mục | `cd` vào thư mục chứa README này, rồi chạy lại test |
+| Row có `_parse_error` / `_truncated` | Model trả JSON vỡ, thường do output bị cắt | Mở `results.jsonl`, xem `raw_content`. Đây là failure mode thật, nên ghi vào report thay vì xoá |
+| Judge toàn 401 | Sai key cho provider của model judge | Kiểm tra `EVAL_JUDGE_MODEL` và API key tương ứng trong `.env` |
+| Retrieve trượt chủ đề | Câu hỏi quá ngắn hoặc phụ thuộc ngữ cảnh slide | Gắn `metadata.slide` với `id`, `title`, `keyword` vào row dataset |
 
 ## Nộp bài thì lấy gì từ repo?
 
